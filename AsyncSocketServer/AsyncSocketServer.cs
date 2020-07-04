@@ -47,7 +47,7 @@ namespace AsyncSocketServer
         private List<IPAddress> ipAddressLocal = new List<IPAddress>();
         private string ipAddressCaller;
         private int port = 0;
-        private short indexIP = 0;
+        // private short indexIP = 0;
         private Logger _log;
         public ManualResetEvent allDone = new ManualResetEvent(false);
         private Socket listener;
@@ -96,6 +96,7 @@ namespace AsyncSocketServer
                 {
                     this.port = Port;
                 }
+                ReadLocalAddressIP();
                 _log.Log(LogLevel.INFO, string.Format("{0}(2) Port:{1} ", logPrefisso, this.port));
             }
             catch (Exception ex)
@@ -153,7 +154,7 @@ namespace AsyncSocketServer
         /// <summary>
         /// Querying an IP address
         /// </summary>
-        /// <param name="Address">Ip address to query</param>
+        /// <param name="Address">Ip address to query (string) </param>
         /// <returns></returns>
         public string Ping(string Address)
         {
@@ -171,6 +172,28 @@ namespace AsyncSocketServer
                 sRet = string.Format("Address {0} not found", Address);
             return sRet;
         }
+        /// <summary>
+        /// Querying an IP address
+        /// </summary>
+        /// <param name="Address">Ip address to query (IPAddress) </param>
+        /// <returns></returns>
+        public string Ping(IPAddress Address)
+        {
+            Ping pingSender = new Ping();
+            PingOptions options = new PingOptions();
+            string data = "";
+            string sRet = "";
+            options.DontFragment = true;
+            byte[] buffer = Encoding.ASCII.GetBytes(data.PadLeft(32, 'a'));
+            int timeout = 120;
+            PingReply reply = pingSender.Send(Address, timeout, buffer);
+            if (reply.Status == IPStatus.Success)
+                sRet = string.Format("Address: {0} Time (milli sec.): {1} Buffer size: {2}", reply.Address.ToString(), reply.RoundtripTime, reply.Buffer.Length);
+            else
+                sRet = string.Format("Address {0} not found", Address);
+            return sRet;
+        }
+
         public void Send(Socket handler, String data)
         {
             MethodBase thisMethod = MethodBase.GetCurrentMethod();
@@ -191,21 +214,21 @@ namespace AsyncSocketServer
         {
             MethodBase thisMethod = MethodBase.GetCurrentMethod();
             IPAddress ipAddress = null;
-            IPAddress[] ipv4Addresses = null;
+            //IPAddress[] ipv4Addresses = null;
             try
             {
-                if (_log != null) _log.Log(LogLevel.INFO, logPrefisso + "Acquisition of the IP address");
-                ipv4Addresses = Array.FindAll(Dns.GetHostEntry(string.Empty).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork);
-                if (ipv4Addresses.Count() == 0)
-                    throw new Exception("No listening server socket was found");
-                else if (_log != null)
-                    foreach (IPAddress ip in ipv4Addresses)
-                    {
-                        ipAddressLocal.Add(ip);
-                        _log.Log(LogLevel.INFO, string.Format("{0}IP address found: {1} ", logPrefisso, ip));
+                //if (_log != null) _log.Log(LogLevel.INFO, logPrefisso + "Acquisition of the IP address");
+                //ipv4Addresses = Array.FindAll(Dns.GetHostEntry(string.Empty).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork);
+                //if (ipv4Addresses.Count() == 0)
+                //    throw new Exception("No listening server socket was found");
+                //else if (_log != null)
+                //    foreach (IPAddress ip in ipv4Addresses)
+                //    {
+                //        ipAddressLocal.Add(ip);
+                //        _log.Log(LogLevel.INFO, string.Format("{0}IP address found: {1} ", logPrefisso, ip));
 
-                    }
-                ipAddress = System.Net.IPAddress.Any;
+                //    }
+                ipAddress = System.Net.IPAddress.Any; // <- questo consente di far partire il server socket con l'indirizzo 0.0.0.0
                 IPEndPoint localEndPoint = new IPEndPoint(ipAddress, this.port);
                 listener = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                 try
@@ -325,7 +348,7 @@ namespace AsyncSocketServer
             // Retrieve the state object and the handler socket  
             // from the asynchronous state object.  
             StateObject state = (StateObject)ar.AsyncState;
-            if (_log != null) _log.Log(LogLevel.INFO, string.Format("{0} ipHost:port= {1}", logPrefisso, ((AsyncSocketServer.StateObject)ar.AsyncState).workSocket.RemoteEndPoint));
+            if (_log != null) _log.Log(LogLevel.INFO, string.Format("{0} DAta from ipHost:port= {1}", logPrefisso, ((AsyncSocketServer.StateObject)ar.AsyncState).workSocket.RemoteEndPoint));
             // This address must be remembered, because it is the one where to send the biometric data
             string[] caller = ((AsyncSocketServer.StateObject)ar.AsyncState).workSocket.RemoteEndPoint.ToString().Split(':');
             IPAddress.TryParse(caller[0], out System.Net.IPAddress lAddress);
@@ -352,6 +375,7 @@ namespace AsyncSocketServer
                         // Console.WriteLine("Read {0} bytes from socket. \n Data : {1}", content.Length, content);
                         // if (_log != null) _log.Log(LogLevel.INFO, string.Format("{0} Read:{1} bytes from socket Data:{2}", logPrefisso, content.Length, content));
                         // Echo the data back to the client.  
+                        if (_log != null) _log.Log(LogLevel.INFO, string.Format("{0} The message form client as {1} is VALID", logPrefisso, content));
                         if (Echo) Send(handler, content);
                         SocketMessageStructure sms = deserializedMessage(content);
                         DataFromSocket?.Invoke(handler, sms);
@@ -359,6 +383,7 @@ namespace AsyncSocketServer
                     else
                     {
                         // Not all data received. Get more.  
+                        if (_log != null) _log.Log(LogLevel.WARNING, string.Format("{0}The message form client as {1} is INVALID", logPrefisso, content));
                         handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
                         new AsyncCallback(ReadCallback), state);
                     }
@@ -372,6 +397,22 @@ namespace AsyncSocketServer
                 */
                 throw new Exception(msg);
             }
+        }
+        private void ReadLocalAddressIP()
+        {
+            IPAddress[] ipv4Addresses = null;
+
+            if (_log != null) _log.Log(LogLevel.INFO, logPrefisso + "Acquisition of the IP address");
+            ipv4Addresses = Array.FindAll(Dns.GetHostEntry(string.Empty).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork);
+            if (ipv4Addresses.Count() == 0)
+                throw new Exception("No listening server socket was found");
+            else if (_log != null)
+                foreach (IPAddress ip in ipv4Addresses)
+                {
+                    ipAddressLocal.Add(ip);
+                    _log.Log(LogLevel.INFO, string.Format("{0}IP address found: {1} ", logPrefisso, ip));
+
+                }
         }
         private void SendCallback(IAsyncResult ar)
         {
@@ -402,7 +443,7 @@ namespace AsyncSocketServer
         public int SrvPort { get { return this.port; } }
         public List<IPAddress> SrvIpAddress { get { return this.ipAddressLocal; } }
         public string CallerIpAddress{ get { return this.ipAddressCaller; } }
-        public short IndexIP { get { return this.indexIP; } set { this.indexIP = value; } }
+        // public short IndexIP { get { return this.indexIP; } set { this.indexIP = value; } }
         #endregion "          * * * That's all folks  * * *           "
     }
     public class AsyncSocketThread
