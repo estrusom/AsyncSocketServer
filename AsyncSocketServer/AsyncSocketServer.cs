@@ -1,4 +1,4 @@
-//22.06.2020
+//05.07.2020
 using MasterLog;
 using MessaggiErrore;
 using SocketManagerInfo;
