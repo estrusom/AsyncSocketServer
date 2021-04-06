@@ -30,17 +30,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="MasterLog, Version=2.0.0.0, Culture=neutral, PublicKeyToken=4839d195d000f6c7, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\MasterLogMutex\bin\Release\MasterLog.dll</HintPath>
-    </Reference>
-    <Reference Include="MessaggiErrore, Version=1.0.1.4, Culture=neutral, PublicKeyToken=d5801a07374cf202, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\poste_new\TestClient\MessaggiErrore\bin\Release\MessaggiErrore.dll</HintPath>
-    </Reference>
-    <Reference Include="SocketManagerInfo">
-      <HintPath>..\..\..\SocketManagerInfo\bin\Release\SocketManagerInfo.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -53,6 +42,20 @@
   <ItemGroup>
     <Compile Include="AsyncSocketServer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\MasterLogMutex\MasterLog.csproj">
+      <Project>{d990905e-13c5-40e4-95c0-b16737834777}</Project>
+      <Name>MasterLog</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\MessaggiErrore\MessaggiErrore.csproj">
+      <Project>{c4be31ba-71ec-420f-ad75-58c661011b5a}</Project>
+      <Name>MessaggiErrore</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\SocketManagerInfo\SocketManagerInfo.csproj">
+      <Project>{89c281f7-ae66-4006-b5a8-142f767fc887}</Project>
+      <Name>SocketManagerInfo</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -1,4 +1,5 @@
 //05.07.2020
+//14.07.2020
 using MasterLog;
 using MessaggiErrore;
 using SocketManagerInfo;
@@ -24,7 +25,7 @@ namespace AsyncSocketServer
         // Client  socket.  
         public Socket workSocket = null;
         // Size of receive buffer.  
-        public static int locBufferSize = 1024;
+        public static int locBufferSize = 180000;
         // Receive buffer.  
         public byte[] buffer;
         // Received data string.  
@@ -95,6 +96,30 @@ namespace AsyncSocketServer
                 else
                 {
                     this.port = Port;
+                }
+                ReadLocalAddressIP();
+                _log.Log(LogLevel.INFO, string.Format("{0}(2) Port:{1} ", logPrefisso, this.port));
+            }
+            catch (Exception ex)
+            {
+                string msg = string.Format("{0} {1}", logPrefisso, ClsMessaggiErrore.CustomMsg(ex, thisMethod));
+                if (_log != null) _log.Log(LogLevel.ERROR, msg); else throw new Exception(msg, ex);
+            }
+        }
+        public AsyncSocketListener(string Port, Logger ServiceLog)
+        {
+            MethodBase thisMethod = MethodBase.GetCurrentMethod();
+            try
+            {
+                string[] sPort = Port.Split(';');
+                _log = ServiceLog;
+                foreach(string s in sPort)
+                {
+                    if (isPortAvailable(Convert.ToInt32(s)))
+                    {
+                        this.port = Convert.ToInt32(s);
+                        break;
+                    }
                 }
                 ReadLocalAddressIP();
                 _log.Log(LogLevel.INFO, string.Format("{0}(2) Port:{1} ", logPrefisso, this.port));
@@ -234,7 +259,7 @@ namespace AsyncSocketServer
                 try
                 {
                     listener.Bind(localEndPoint);
-                    listener.Listen(10);
+                    listener.Listen(100);
                 }
                 catch (Exception ex)
                 {
@@ -375,9 +400,9 @@ namespace AsyncSocketServer
                         // Console.WriteLine("Read {0} bytes from socket. \n Data : {1}", content.Length, content);
                         // if (_log != null) _log.Log(LogLevel.INFO, string.Format("{0} Read:{1} bytes from socket Data:{2}", logPrefisso, content.Length, content));
                         // Echo the data back to the client.  
-                        if (_log != null) _log.Log(LogLevel.INFO, string.Format("{0} The message form client as {1} is VALID", logPrefisso, content));
                         if (Echo) Send(handler, content);
                         SocketMessageStructure sms = deserializedMessage(content);
+                        if (_log != null) _log.Log(LogLevel.INFO, string.Format("{0} The message form client as {1} is VALID", logPrefisso, sms.Command));
                         DataFromSocket?.Invoke(handler, sms);
                     }
                     else
@@ -465,8 +490,8 @@ namespace AsyncSocketServer
                 {
                     if (!IsStarted)
                     {
-                        IsStarted = true;
                         asl.StartListening(this.log);
+                        IsStarted = true;
                         log.Log(LogLevel.INFO, "The listener is listening on the socket channel");
                     }
                     else
