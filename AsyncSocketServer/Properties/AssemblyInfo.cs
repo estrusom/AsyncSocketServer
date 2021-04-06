@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("AsyncSocketServer")]
 [assembly: AssemblyDescription("Asynchronous socket server manager")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Technology Estate srl")]
-[assembly: AssemblyProduct("AsyncSocketServer")]
-[assembly: AssemblyCopyright("Copyright © Technology Estate srl 2020")]
+[assembly: AssemblyCompany("Technology Estate")]
+[assembly: AssemblyProduct("General purpose asyncronous socket server")]
+[assembly: AssemblyCopyright("Copyright ©Technology Estate 2020")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // È possibile specificare tutti i valori oppure impostare valori predefiniti per i numeri relativi alla revisione e alla build
 // usando l'asterisco '*' come illustrato di seguito:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.0.0.1")]
-[assembly: AssemblyFileVersion("1.0.0.1")]
+[assembly: AssemblyVersion("1.0.1.2")]
+[assembly: AssemblyFileVersion("1.0.1.2")]

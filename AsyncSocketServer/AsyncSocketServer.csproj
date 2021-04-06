@@ -11,6 +11,7 @@
     <AssemblyName>AsyncSocketServer</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -29,7 +30,17 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>PAXkey.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
+    <Reference Include="SocketManagerInfo, Version=1.0.1.1, Culture=neutral, PublicKeyToken=ad29eee402c8b094, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\SocketManagerInfo\bin\Release\SocketManagerInfo.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -44,18 +55,21 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\MasterLogMutex\MasterLog.csproj">
+    <ProjectReference Include="..\..\MasterLogMutex\MasterLog.csproj">
       <Project>{d990905e-13c5-40e4-95c0-b16737834777}</Project>
       <Name>MasterLog</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\MessaggiErrore\MessaggiErrore.csproj">
+    <ProjectReference Include="..\..\MessaggiErrore\MessaggiErrore.csproj">
       <Project>{c4be31ba-71ec-420f-ad75-58c661011b5a}</Project>
       <Name>MessaggiErrore</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\SocketManagerInfo\SocketManagerInfo.csproj">
-      <Project>{89c281f7-ae66-4006-b5a8-142f767fc887}</Project>
-      <Name>SocketManagerInfo</Name>
-    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="PAXkey.snk" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
 </Project>
