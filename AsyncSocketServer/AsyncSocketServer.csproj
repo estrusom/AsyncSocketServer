@@ -37,7 +37,15 @@
     <AssemblyOriginatorKeyFile>PAXkey.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="SocketManagerInfo, Version=1.0.1.1, Culture=neutral, PublicKeyToken=ad29eee402c8b094, processorArchitecture=MSIL">
+    <Reference Include="MasterLog, Version=2.0.0.1, Culture=neutral, PublicKeyToken=ad29eee402c8b094, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\MasterLogMutex\bin\Release\MasterLog.dll</HintPath>
+    </Reference>
+    <Reference Include="MessaggiErrore, Version=1.0.1.4, Culture=neutral, PublicKeyToken=ad29eee402c8b094, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\MessaggiErrore\bin\Release\MessaggiErrore.dll</HintPath>
+    </Reference>
+    <Reference Include="SocketManagerInfo, Version=1.0.1.3, Culture=neutral, PublicKeyToken=ad29eee402c8b094, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\SocketManagerInfo\bin\Release\SocketManagerInfo.dll</HintPath>
     </Reference>
@@ -53,16 +61,6 @@
   <ItemGroup>
     <Compile Include="AsyncSocketServer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\MasterLogMutex\MasterLog.csproj">
-      <Project>{d990905e-13c5-40e4-95c0-b16737834777}</Project>
-      <Name>MasterLog</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\MessaggiErrore\MessaggiErrore.csproj">
-      <Project>{c4be31ba-71ec-420f-ad75-58c661011b5a}</Project>
-      <Name>MessaggiErrore</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="PAXkey.snk" />

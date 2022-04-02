@@ -1,5 +1,9 @@
 //05.07.2020
 //14.07.2020
+//29.04.2021 così visualizzo il nome corretto del metodo
+//15.06.21 il buffer è stato potato da 180000 byte a 1800000
+//15.06.2021  corretto gestione callback ricezione da socket. questo evita il warning di comando non riconosciuto.
+//10.02.2022 Chiude i socket nell'intervallo previsto
 using MasterLog;
 using MessaggiErrore;
 using SocketManagerInfo;
@@ -32,7 +36,7 @@ namespace AsyncSocketServer
         // Client  socket.  
         public Socket workSocket = null;
         // Size of receive buffer.  
-        public static int locBufferSize = 180000;
+        public static int locBufferSize = 1800000; // 15.06.21 il buffer è stato potato da 180000 byte a 1800000
         // Receive buffer.  
         public byte[] buffer;
         // Received data string.  
@@ -145,7 +149,7 @@ namespace AsyncSocketServer
 
                 ReadLocalAddressIP();
                 //                  if ((this.SwDebug & _log.LOG_INFO) == _log.LOG_INFO)
-                if (_log != null) _log.Log(LogLevel.INFO, string.Format("{0} Method: {1} Port:{2} after ReadLocalAddressIP", logPrefisso, thisMethod.Name, this.port));
+                if (_log != null) _log.Log(LogLevel.INFO, string.Format("{0} Method: {1} Port:{2} after ReadLocalAddressIP", logPrefisso, thisMethod.ReflectedType.Name, this.port)); //29.04.2021 così visualizzo il nome corretto del metodo
             }
             catch (ErrorPortException epx)
             {
@@ -209,6 +213,50 @@ namespace AsyncSocketServer
             {
                 // Wait until a connection is made before continuing.  
                 allDone.WaitOne();
+            }
+        }
+        /// <summary>
+        /// 10.02.2022 Chiude i socket nell'intervallo previsto
+        /// </summary>
+        /// <param name="TimeExpire">Tempo di scadenza espresso in secondi</param>
+        public void CloseServerSocket(int TimeExpire)
+        {
+            MethodBase thisMethod = MethodBase.GetCurrentMethod();
+            int Pos = 0;
+            try
+            {
+                Pos = 1;
+                this.handler.Disconnect(false);
+                Pos = 2;
+                // this.listener.Disconnect(false);
+                if (TimeExpire != 0)
+                {
+                    Pos = 3;
+                    if (_log != null)
+                        _log.Log(LogLevel.INFO, string.Format("Server socket expire in {0}sec", TimeExpire.ToString()));
+                    //this.listener.Close(TimeExpire);
+                    Pos = 4;
+                    this.handler.Close(TimeExpire);
+                    // Pos = 5;
+                    //this.handler.Shutdown(SocketShutdown.Both);
+                }
+                else
+                {
+                    Pos = 5;
+                    if (_log != null)
+                        _log.Log(LogLevel.INFO, "Expiration time not set");
+                    //this.listener.Close();
+                    Pos = 6;
+                    this.handler.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                string msg = string.Format("{0} {1} Pos:{2}", logPrefisso, ClsMessaggiErrore.CustomMsg(ex, thisMethod), Pos);
+                if (_log != null)
+                    _log.Log(LogLevel.ERROR, msg);
+
+                throw new Exception(msg);
             }
         }
         /// <summary>
@@ -362,7 +410,6 @@ namespace AsyncSocketServer
             {
                 // Signal the main thread to continue.  
                 allDone.Set();
-
                 // Get the socket that handles the client request.  
                 Socket listener = (Socket)ar.AsyncState;
                 Socket handler = listener.EndAccept(ar);
@@ -439,7 +486,7 @@ namespace AsyncSocketServer
         private void ReadCallback(IAsyncResult ar)
         {
             MethodBase thisMethod = MethodBase.GetCurrentMethod();
-            String content = String.Empty;
+            string content = string.Empty;
             // Retrieve the state object and the handler socket  
             // from the asynchronous state object.  
             StateObject state = (StateObject)ar.AsyncState;
@@ -454,6 +501,7 @@ namespace AsyncSocketServer
             handler = state.workSocket;
             try
             {
+                /* fino al 15.06.2021
                 // Read data from the client socket.
                 int bytesRead = handler.EndReceive(ar);
 
@@ -485,8 +533,53 @@ namespace AsyncSocketServer
                         if (_log != null)
                             //if ((this.SwDebug & _log.LOG_INFO) == _log.LOG_INFO)
                             _log.Log(LogLevel.WARNING, string.Format("{0}The message form client as {1} is INVALID", logPrefisso, content));
-                        handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
-                        new AsyncCallback(ReadCallback), state);
+                        handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReadCallback), state);
+                    }
+                }
+                
+                */
+                //15.06.2021  corretto gestione callback ricezione da socket. questo evita il warning di comando non riconosciuto.
+                // Read data from the client socket.
+                int bytesRead = handler.EndReceive(ar);
+
+                if (bytesRead > 0)
+                {
+                    // There  might be more data, so store the data received so far.  
+                    state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, bytesRead));
+                    content = state.sb.ToString();
+                    if (content.IndexOf("</SocketMessageStructure>") > -1)
+                    {
+                        if (Echo) Send(handler, content);
+                        SocketMessageStructure sms = deserializedMessage(content);
+                        if (_log != null)
+                            _log.Log(LogLevel.INFO, string.Format("{0} The message form client as {1} is VALID", logPrefisso, sms.Command));
+                        DataFromSocket?.Invoke(handler, sms);
+                    }
+                    else
+                    {
+                        handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReadCallback), state);
+                        if (_log != null)
+                            _log.Log(LogLevel.DEBUG, string.Format("{0} waiting to receive data from the socket", logPrefisso));
+                    }
+                }
+                else
+                { 
+                    if (state.sb.Length > 1)
+                    {
+                        content = state.sb.ToString();
+                        if (content.IndexOf("</SocketMessageStructure>") > -1)
+                        {
+                            if (Echo) Send(handler, content);
+                            SocketMessageStructure sms = deserializedMessage(content);
+                            if (_log != null)
+                                _log.Log(LogLevel.INFO, string.Format("{0} The message form client as {1} is VALID", logPrefisso, sms.Command));
+                            DataFromSocket?.Invoke(handler, sms);
+                        }
+                        else
+                        {
+                            if (_log != null)
+                                _log.Log(LogLevel.WARNING, string.Format("{0}The message form client as {1} is INVALID", logPrefisso, content));
+                        }
                     }
                 }
             }
