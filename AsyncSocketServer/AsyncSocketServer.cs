@@ -9,6 +9,7 @@ using MessaggiErrore;
 using SocketManagerInfo;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -501,43 +502,6 @@ namespace AsyncSocketServer
             handler = state.workSocket;
             try
             {
-                /* fino al 15.06.2021
-                // Read data from the client socket.
-                int bytesRead = handler.EndReceive(ar);
-
-                if (bytesRead > 0)
-                {
-                    // There  might be more data, so store the data received so far.  
-                    state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, bytesRead));
-
-                    // Check for end-of-file tag. If it is not there, read
-                    // more data.  
-                    content = state.sb.ToString();
-                    if (content.IndexOf("</SocketMessageStructure>") > -1)
-                    {
-                        // All the data has been read from the
-                        // client. Display it on the console.  
-                        // Console.WriteLine("Read {0} bytes from socket. \n Data : {1}", content.Length, content);
-                        // if (_log != null) _log.Log(LogLevel.INFO, string.Format("{0} Read:{1} bytes from socket Data:{2}", logPrefisso, content.Length, content));
-                        // Echo the data back to the client.  
-                        if (Echo) Send(handler, content);
-                        SocketMessageStructure sms = deserializedMessage(content);
-                        if (_log != null)
-                            //if ((this.SwDebug & _log.LOG_INFO) == _log.LOG_INFO)
-                            _log.Log(LogLevel.INFO, string.Format("{0} The message form client as {1} is VALID", logPrefisso, sms.Command));
-                        DataFromSocket?.Invoke(handler, sms);
-                    }
-                    else
-                    {
-                        // Not all data received. Get more.  
-                        if (_log != null)
-                            //if ((this.SwDebug & _log.LOG_INFO) == _log.LOG_INFO)
-                            _log.Log(LogLevel.WARNING, string.Format("{0}The message form client as {1} is INVALID", logPrefisso, content));
-                        handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReadCallback), state);
-                    }
-                }
-                
-                */
                 //15.06.2021  corretto gestione callback ricezione da socket. questo evita il warning di comando non riconosciuto.
                 // Read data from the client socket.
                 int bytesRead = handler.EndReceive(ar);
@@ -547,10 +511,16 @@ namespace AsyncSocketServer
                     // There  might be more data, so store the data received so far.  
                     state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, bytesRead));
                     content = state.sb.ToString();
-                    if (content.IndexOf("</SocketMessageStructure>") > -1)
+                    if (content.IndexOf(SocketMessageSerialize.Base64End) > -1)
                     {
                         if (Echo) Send(handler, content);
-                        SocketMessageStructure sms = deserializedMessage(content);
+                        //SocketMessageStructure sms = SocketMessageSerialize.DeserializeUTF8(content);
+                        ASCIIEncoding dencoding = new ASCIIEncoding();
+                        int init = content.IndexOf(SocketMessageSerialize.Base64Start) + SocketMessageSerialize.Base64Start.Length;
+                        int end = content.IndexOf(SocketMessageSerialize.Base64End);
+                        string xmlSv = Encoding.UTF8.GetString(Convert.FromBase64String(content.Substring(init, end - init)));
+                        SocketMessageStructure sms = SocketMessageSerialize.DeserializeUTF8(xmlSv);
+
                         if (_log != null)
                             _log.Log(LogLevel.INFO, string.Format("{0} The message form client as {1} is VALID", logPrefisso, sms.Command));
                         DataFromSocket?.Invoke(handler, sms);
@@ -569,7 +539,7 @@ namespace AsyncSocketServer
                         content = state.sb.ToString();
                         if (content.IndexOf("</SocketMessageStructure>") > -1)
                         {
-                            if (Echo) Send(handler, content);
+                            if (Echo) Send(handler, content); 
                             SocketMessageStructure sms = deserializedMessage(content);
                             if (_log != null)
                                 _log.Log(LogLevel.INFO, string.Format("{0} The message form client as {1} is VALID", logPrefisso, sms.Command));
@@ -684,8 +654,8 @@ namespace AsyncSocketServer
                                 log.Log(LogLevel.INFO, logPrefisso + "The listener is listening");
                         asl.Listening();
                         if (log != null)
-                            if ((this.SwDebug & log.LOG_DEBUG) == log.LOG_DEBUG)
-                                log.Log(LogLevel.INFO, logPrefisso + "The listener listened");
+                            //if ((this.SwDebug & log.LOG_DEBUG) == log.LOG_DEBUG)
+                            log.Log(LogLevel.INFO, logPrefisso + "The listener listened");
 
                     }
                     Thread.Sleep(this.Interval);
