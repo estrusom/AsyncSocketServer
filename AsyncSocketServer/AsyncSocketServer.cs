@@ -4,6 +4,7 @@
 //15.06.21 il buffer è stato potato da 180000 byte a 1800000
 //15.06.2021  corretto gestione callback ricezione da socket. questo evita il warning di comando non riconosciuto.
 //10.02.2022 Chiude i socket nell'intervallo previsto
+//2025.05.21 spsostato qui da subito dopo listener.BeginAccept
 using MasterLog;
 using MessaggiErrore;
 using SocketManagerInfo;
@@ -115,12 +116,12 @@ namespace AsyncSocketServer
                 }
                 ReadLocalAddressIP();
                 //if ((this.SwDebug & _log.LOG_INFO) == _log.LOG_INFO)
-                if (_log != null) _log.Log(LogLevel.INFO, string.Format("{0}(2) Port:{1} ", logPrefisso, this.port));
+                if (_log != null) _log.Log(MasterLog.LogLevel.INFO, string.Format("{0}(2) Port:{1} ", logPrefisso, this.port));
             }
             catch (Exception ex)
             {
                 string msg = string.Format("{0} {1}", logPrefisso, ClsMessaggiErrore.CustomMsg(ex, thisMethod));
-                if (_log != null) _log.Log(LogLevel.ERROR, msg); else throw new Exception(msg, ex);
+                if (_log != null) _log.Log(MasterLog.LogLevel.ERROR, msg); else throw new Exception(msg, ex);
             }
         }
         public AsyncSocketListener(string Port, Logger ServiceLog)
@@ -150,7 +151,7 @@ namespace AsyncSocketServer
 
                 ReadLocalAddressIP();
                 //                  if ((this.SwDebug & _log.LOG_INFO) == _log.LOG_INFO)
-                if (_log != null) _log.Log(LogLevel.INFO, string.Format("{0} Method: {1} Port:{2} after ReadLocalAddressIP", logPrefisso, thisMethod.ReflectedType.Name, this.port)); //29.04.2021 così visualizzo il nome corretto del metodo
+                if (_log != null) _log.Log(MasterLog.LogLevel.INFO, string.Format("{0} Method: {1} Port:{2} after ReadLocalAddressIP", logPrefisso, thisMethod.ReflectedType.Name, this.port)); //29.04.2021 così visualizzo il nome corretto del metodo
             }
             catch (ErrorPortException epx)
             {
@@ -160,7 +161,7 @@ namespace AsyncSocketServer
             catch (Exception ex)
             {
                 string msg = string.Format("{0} {1}", logPrefisso, ClsMessaggiErrore.CustomMsg(ex, thisMethod));
-                if (_log != null) _log.Log(LogLevel.ERROR, msg); else throw new Exception(msg, ex);
+                if (_log != null) _log.Log(MasterLog.LogLevel.ERROR, msg); else throw new Exception(msg, ex);
             }
         }
         #endregion"          * * * That's all folks  * * *           "
@@ -174,20 +175,27 @@ namespace AsyncSocketServer
                 allDone.Reset();
 
                 // Start an asynchronous socket to listen for connections.  
+                /*  2025.05.21 eliminato log
                 if (_log != null)
-                    //if ((this.SwDebug & _log.LOG_INFO) == _log.LOG_INFO)
-                    _log.Log(LogLevel.INFO, logPrefisso + "(6) Waiting for a connection...");
+                    _log.Log(MasterLog.LogLevel.INFO, logPrefisso + "(6) Waiting for a connection...");
                 else
                     Console.WriteLine("Waiting for a connection...");
+                */
                 listener.BeginAccept(new AsyncCallback(AcceptCallback), listener);
 
-                // Wait until a connection is made before continuing.  
-                allDone.WaitOne(Timeout); // 16.06.2020 Provo a mettere un timeout? MA BISOGNA CAPIRE SE FA CASINO? 
             }catch(Exception ex)
             {
                 string msg = string.Format("{0} {1} {2}", logPrefisso, ClsMessaggiErrore.CustomMsg(ex, thisMethod), ((SocketException)ex).ErrorCode );
-                if (_log != null) _log.Log(LogLevel.ERROR, msg); else throw new Exception(msg, ex);
+                if (_log != null) _log.Log(MasterLog.LogLevel.ERROR, msg); else throw new Exception(msg, ex);
                 ErrorFromSocket?.Invoke(handler, ex.Message);
+                if (_log != null)
+                    _log.Log(MasterLog.LogLevel.DEBUG, string.Format("{0} handler: {1} funzione: {2}", logPrefisso, handler.Connected, thisMethod.Name));
+            }
+            finally
+            {
+                //2025.05.21 spsostato qui da subito dopo listener.BeginAccept
+                // Wait until a connection is made before continuing.  
+                allDone.WaitOne(Timeout); // 16.06.2020 Provo a mettere un timeout? MA BISOGNA CAPIRE SE FA CASINO? 
             }
         }
         public void Listening()
@@ -199,16 +207,20 @@ namespace AsyncSocketServer
                 allDone.Reset();
 
                 // Start an asynchronous socket to listen for connections.  
-                if (_log != null)
-                    //if ((this.SwDebug & _log.LOG_INFO) == _log.LOG_INFO)
-                    _log.Log(LogLevel.INFO, logPrefisso + "(5)" + "Waiting for a connection...");
-                else Console.WriteLine("Waiting for a connection...");
+                //2025.05.21 eliminato log
+                //if (_log != null)
+                //    //if ((this.SwDebug & _log.LOG_INFO) == _log.LOG_INFO)
+                //    _log.Log(MasterLog.LogLevel.INFO, logPrefisso + "(5)" + "Waiting for a connection...");
+                //else Console.WriteLine("Waiting for a connection...");
                 listener.BeginAccept(new AsyncCallback(AcceptCallback), listener);
             }catch(Exception ex)
             {
                 string msg = string.Format("{0} {1} {2}", logPrefisso, ClsMessaggiErrore.CustomMsg(ex, thisMethod), ((SocketException)ex).ErrorCode);
-                if (_log != null) _log.Log(LogLevel.ERROR, msg); else throw new Exception(msg, ex);
+                if (_log != null) _log.Log(MasterLog.LogLevel.ERROR, msg); else throw new Exception(msg, ex);
                 ErrorFromSocket?.Invoke(handler, ex.Message);
+                if (_log != null)
+                    _log.Log(MasterLog.LogLevel.DEBUG, string.Format("{0} handler: {1} funzione: {2}", logPrefisso, handler.Connected, thisMethod.Name));
+
             }
             finally
             {
@@ -226,36 +238,39 @@ namespace AsyncSocketServer
             int Pos = 0;
             try
             {
-                Pos = 1;
-                this.handler.Disconnect(false);
-                Pos = 2;
-                // this.listener.Disconnect(false);
-                if (TimeExpire != 0)
+                if (this.handler != null)
                 {
-                    Pos = 3;
-                    if (_log != null)
-                        _log.Log(LogLevel.INFO, string.Format("Server socket expire in {0}sec", TimeExpire.ToString()));
-                    //this.listener.Close(TimeExpire);
-                    Pos = 4;
-                    this.handler.Close(TimeExpire);
-                    // Pos = 5;
-                    //this.handler.Shutdown(SocketShutdown.Both);
-                }
-                else
-                {
-                    Pos = 5;
-                    if (_log != null)
-                        _log.Log(LogLevel.INFO, "Expiration time not set");
-                    //this.listener.Close();
-                    Pos = 6;
-                    this.handler.Close();
+                    Pos = 1;
+                    this.handler.Disconnect(false);
+                    Pos = 2;
+                    // this.listener.Disconnect(false);
+                    if (TimeExpire != 0)
+                    {
+                        Pos = 3;
+                        if (_log != null)
+                            _log.Log(MasterLog.LogLevel.INFO, string.Format("Server socket expire in {0}sec", TimeExpire.ToString()));
+                        //this.listener.Close(TimeExpire);
+                        Pos = 4;
+                        this.handler.Close(TimeExpire);
+                        // Pos = 5;
+                        //this.handler.Shutdown(SocketShutdown.Both);
+                    }
+                    else
+                    {
+                        Pos = 5;
+                        if (_log != null)
+                            _log.Log(MasterLog.LogLevel.INFO, "Expiration time not set");
+                        //this.listener.Close();
+                        Pos = 6;
+                        this.handler.Close();
+                    }
                 }
             }
             catch (Exception ex)
             {
                 string msg = string.Format("{0} {1} Pos:{2}", logPrefisso, ClsMessaggiErrore.CustomMsg(ex, thisMethod), Pos);
                 if (_log != null)
-                    _log.Log(LogLevel.ERROR, msg);
+                    _log.Log(MasterLog.LogLevel.ERROR, msg);
 
                 throw new Exception(msg);
             }
@@ -348,11 +363,14 @@ namespace AsyncSocketServer
                 byte[] byteData = Encoding.ASCII.GetBytes(data);
                 // Begin sending the data to the remote device.  
                 handler.BeginSend(byteData, 0, byteData.Length, 0, new AsyncCallback(SendCallback), handler);
+                if (_log != null)
+                    _log.Log(MasterLog.LogLevel.DEBUG, string.Format("{0} handler: {1} funzione: {2}", logPrefisso, handler.Connected, thisMethod.Name));
+
             }
             catch (Exception ex)
             {
                 string msg = string.Format("{0} {1}", logPrefisso, ClsMessaggiErrore.CustomMsg(ex, thisMethod));
-                if (_log != null) _log.Log(LogLevel.ERROR, msg); else throw new Exception(msg, ex);
+                if (_log != null) _log.Log(MasterLog.LogLevel.ERROR, msg); else throw new Exception(msg, ex);
                 // throw new Exception(msg, ex);
             }
         }
@@ -389,7 +407,7 @@ namespace AsyncSocketServer
                     Console.WriteLine(msg);
 #endif
                     if (_log != null)
-                        _log.Log(LogLevel.ERROR, msg); else throw new Exception(msg, ex);
+                        _log.Log(MasterLog.LogLevel.ERROR, msg); else throw new Exception(msg, ex);
                 }
 
             }catch(Exception ex)
@@ -399,7 +417,7 @@ namespace AsyncSocketServer
                 Console.WriteLine(msg);
 #endif
                 if (_log != null)
-                    _log.Log(LogLevel.ERROR, msg); else throw new Exception(msg, ex);
+                    _log.Log(MasterLog.LogLevel.ERROR, msg); else throw new Exception(msg, ex);
             }
         }
         #endregion"          * * * That's all folks  * * *           "
@@ -414,11 +432,16 @@ namespace AsyncSocketServer
                 // Get the socket that handles the client request.  
                 Socket listener = (Socket)ar.AsyncState;
                 Socket handler = listener.EndAccept(ar);
+                if (_log != null)
+                    _log.Log(MasterLog.LogLevel.DEBUG, string.Format("{0} handler: {1} funzione: {2}", logPrefisso, handler.Connected, thisMethod.Name));
 
                 // Create the state object.  
                 StateObject state = new StateObject();
                 state.workSocket = handler;
                 handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReadCallback), state);
+                if (_log != null)
+                    _log.Log(MasterLog.LogLevel.DEBUG, string.Format("{0} handler: {1} funzione: {2}", logPrefisso, handler.Connected, thisMethod.Name));
+
 
             }
             catch (Exception ex)
@@ -472,7 +495,7 @@ namespace AsyncSocketServer
                 if (V.Any())
                 {
                     if (_log != null) 
-                    _log.Log(LogLevel.WARNING, string.Format("{0} ADDRESS: {1} PORT: {2} STATE: {3}", logPrefisso, V.First().LocalEndPoint.Address, V.First().LocalEndPoint.Port, V.First().State));
+                    _log.Log(MasterLog.LogLevel.WARNING, string.Format("{0} ADDRESS: {1} PORT: {2} STATE: {3}", logPrefisso, V.First().LocalEndPoint.Address, V.First().LocalEndPoint.Port, V.First().State));
                 }else
                     ret = !V.Any();
             }
@@ -493,7 +516,7 @@ namespace AsyncSocketServer
             StateObject state = (StateObject)ar.AsyncState;
             if (_log != null)
                 //if ((this.SwDebug & _log.LOG_INFO) == _log.LOG_INFO)
-                _log.Log(LogLevel.INFO, string.Format("{0} DAta from ipHost:port= {1}", logPrefisso, ((AsyncSocketServer.StateObject)ar.AsyncState).workSocket.RemoteEndPoint));
+                _log.Log(MasterLog.LogLevel.INFO, string.Format("{0} DAta from ipHost:port= {1}", logPrefisso, ((AsyncSocketServer.StateObject)ar.AsyncState).workSocket.RemoteEndPoint));
             // This address must be remembered, because it is the one where to send the biometric data
             string[] caller = ((AsyncSocketServer.StateObject)ar.AsyncState).workSocket.RemoteEndPoint.ToString().Split(':');
             IPAddress.TryParse(caller[0], out System.Net.IPAddress lAddress);
@@ -502,34 +525,50 @@ namespace AsyncSocketServer
             handler = state.workSocket;
             try
             {
+                if (_log != null)
+                    _log.Log(MasterLog.LogLevel.DEBUG, string.Format("{0} handler: {1} funzione: {2}", logPrefisso, handler.Connected, thisMethod.Name));
+
                 //15.06.2021  corretto gestione callback ricezione da socket. questo evita il warning di comando non riconosciuto.
                 // Read data from the client socket.
                 int bytesRead = handler.EndReceive(ar);
+                if (_log != null)
+                    _log.Log(MasterLog.LogLevel.DEBUG, string.Format("{0} handler: {1} funzione: {2}", logPrefisso, handler.Connected, thisMethod.Name));
 
                 if (bytesRead > 0)
                 {
                     // There  might be more data, so store the data received so far.  
                     state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, bytesRead));
                     content = state.sb.ToString();
-                    if (content.IndexOf(SocketMessageSerialize.Base64End) > -1)
+                    if (content.IndexOf(SocketMessageSerializer.Base64End) > -1)
                     {
                         if (Echo) Send(handler, content);
+                        if (_log != null)
+                            _log.Log(MasterLog.LogLevel.DEBUG, string.Format("{0} handler: {1} funzione: {2}", logPrefisso, handler.Connected, thisMethod.Name));
+
                         //SocketMessageStructure sms = SocketMessageSerialize.DeserializeUTF8(content);
                         ASCIIEncoding dencoding = new ASCIIEncoding();
-                        int init = content.IndexOf(SocketMessageSerialize.Base64Start) + SocketMessageSerialize.Base64Start.Length;
-                        int end = content.IndexOf(SocketMessageSerialize.Base64End);
+                        int init = content.IndexOf(SocketMessageSerializer.Base64Start) + SocketMessageSerializer.Base64Start.Length;
+                        int end = content.IndexOf(SocketMessageSerializer.Base64End);
                         string xmlSv = Encoding.UTF8.GetString(Convert.FromBase64String(content.Substring(init, end - init)));
-                        SocketMessageStructure sms = SocketMessageSerialize.DeserializeUTF8(xmlSv);
+                        SocketMessageStructure sms = SocketMessageSerializer.DeserializeUTF8(xmlSv);
 
                         if (_log != null)
-                            _log.Log(LogLevel.INFO, string.Format("{0} The message form client as {1} is VALID", logPrefisso, sms.Command));
+                            _log.Log(MasterLog.LogLevel.INFO, string.Format("{0} The message form client as {1} is VALID", logPrefisso, sms.Command));
                         DataFromSocket?.Invoke(handler, sms);
+                        if (_log != null)
+                            _log.Log(MasterLog.LogLevel.DEBUG, string.Format("{0} handler: {1} funzione: {2}", logPrefisso, handler.Connected, thisMethod.Name));
+
                     }
                     else
                     {
                         handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReadCallback), state);
                         if (_log != null)
-                            _log.Log(LogLevel.DEBUG, string.Format("{0} waiting to receive data from the socket", logPrefisso));
+                        {
+                            _log.Log(MasterLog.LogLevel.DEBUG, string.Format("{0} waiting to receive data from the socket", logPrefisso));
+                            _log.Log(MasterLog.LogLevel.DEBUG, string.Format("{0} handler: {1} funzione: {2}", logPrefisso, handler.Connected, thisMethod.Name));
+
+                        }
+                        
                     }
                 }
                 else
@@ -542,13 +581,16 @@ namespace AsyncSocketServer
                             if (Echo) Send(handler, content); 
                             SocketMessageStructure sms = deserializedMessage(content);
                             if (_log != null)
-                                _log.Log(LogLevel.INFO, string.Format("{0} The message form client as {1} is VALID", logPrefisso, sms.Command));
+                                _log.Log(MasterLog.LogLevel.INFO, string.Format("{0} The message form client as {1} is VALID", logPrefisso, sms.Command));
                             DataFromSocket?.Invoke(handler, sms);
+                            if (_log != null)
+                                _log.Log(MasterLog.LogLevel.DEBUG, string.Format("{0} handler: {1} funzione: {2}", logPrefisso, handler.Connected, thisMethod.Name));
+
                         }
                         else
                         {
                             if (_log != null)
-                                _log.Log(LogLevel.WARNING, string.Format("{0}The message form client as {1} is INVALID", logPrefisso, content));
+                                _log.Log(MasterLog.LogLevel.WARNING, string.Format("{0}The message form client as {1} is INVALID", logPrefisso, content));
                         }
                     }
                 }
@@ -560,7 +602,7 @@ namespace AsyncSocketServer
                 if (_log != null) _log.Log(LogLevel.ERROR, msg);
                 ErrorFromSocket?.Invoke(handler, ex.Message);
                 */
-                if (_log != null) _log.Log(LogLevel.ERROR, msg);
+                if (_log != null) _log.Log(MasterLog.LogLevel.ERROR, msg);
                 throw new Exception(msg);
             }
         }
@@ -570,7 +612,7 @@ namespace AsyncSocketServer
 
             if (_log != null)
                 //if ((this.SwDebug & _log.LOG_INFO) == _log.LOG_INFO)
-                _log.Log(LogLevel.INFO, logPrefisso + "Acquisition of the IP address");
+                _log.Log(MasterLog.LogLevel.INFO, logPrefisso + "Acquisition of the IP address");
             ipv4Addresses = Array.FindAll(Dns.GetHostEntry(string.Empty).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork);
             if (ipv4Addresses.Count() == 0)
                 throw new Exception("No listening server socket was found");
@@ -580,7 +622,7 @@ namespace AsyncSocketServer
                     ipAddressLocal.Add(ip);
                     if (_log != null)
                         //if ((this.SwDebug & _log.LOG_INFO) == _log.LOG_INFO)
-                        _log.Log(LogLevel.INFO, string.Format("{0}IP address found: {1} ", logPrefisso, ip));
+                        _log.Log(MasterLog.LogLevel.INFO, string.Format("{0}IP address found: {1} ", logPrefisso, ip));
                 }
         }
         private void SendCallback(IAsyncResult ar)
@@ -590,16 +632,25 @@ namespace AsyncSocketServer
             {
                 // Retrieve the socket from the state object.  
                 Socket handler = (Socket)ar.AsyncState;
+                if (_log != null)
+                    _log.Log(MasterLog.LogLevel.DEBUG, string.Format("{0} handler: {1} funzione: {2}", logPrefisso, handler.Connected, thisMethod.Name));
 
                 // Complete sending the data to the remote device.  
                 int bytesSent = handler.EndSend(ar);
                 if (_log != null)
                     //if ((this.SwDebug & _log.LOG_DEBUG) == _log.LOG_DEBUG)
-                    _log.Log(LogLevel.DEBUG, string.Format("Sent {0} bytes to client.", bytesSent));
+                    _log.Log(MasterLog.LogLevel.DEBUG, string.Format("Sent {0} bytes to client.", bytesSent));
                 Console.WriteLine("Sent {0} bytes to client.", bytesSent);
 
+                // 2025.05.21 
+                if (_log != null)
+                    _log.Log(MasterLog.LogLevel.DEBUG, string.Format("{0} handler: {1} funzione: {2}", logPrefisso, handler.Connected, thisMethod.Name));
+                
                 handler.Shutdown(SocketShutdown.Both);
-                handler.Close();
+                //handler.Close();
+                                if (_log != null)
+                    _log.Log(MasterLog.LogLevel.DEBUG, string.Format("{0} handler: {1} funzione: {2}", logPrefisso, handler.Connected, thisMethod.Name));
+
             }
             catch (Exception ex)
             {
@@ -652,10 +703,12 @@ namespace AsyncSocketServer
                         if (log != null)
                             if ((this.SwDebug & log.LOG_DEBUG) == log.LOG_DEBUG)
                                 log.Log(LogLevel.INFO, logPrefisso + "The listener is listening");
-                        asl.Listening();
+                        asl.Listening(3);
+                        /* 2025.05.21 eliminato log
                         if (log != null)
                             //if ((this.SwDebug & log.LOG_DEBUG) == log.LOG_DEBUG)
                             log.Log(LogLevel.INFO, logPrefisso + "The listener listened");
+                        */
 
                     }
                     Thread.Sleep(this.Interval);
