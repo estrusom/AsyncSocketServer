@@ -603,7 +603,7 @@ namespace AsyncSocketServer
                 ErrorFromSocket?.Invoke(handler, ex.Message);
                 */
                 if (_log != null) _log.Log(MasterLog.LogLevel.ERROR, msg);
-                throw new Exception(msg);
+                // throw new Exception(msg); 2025.0521 per ora è commentato
             }
         }
         private void ReadLocalAddressIP()
