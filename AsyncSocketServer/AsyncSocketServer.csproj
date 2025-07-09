@@ -52,10 +52,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="PAXkey.snk" />
-    <None Include="RRU_EvolutiveSystem.pfx" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\..\MasterLogMutex\MasterLogMutex.csproj">
       <Project>{d990905e-13c5-40e4-95c0-b16737834777}</Project>
       <Name>MasterLogMutex</Name>
@@ -68,6 +64,9 @@
       <Project>{86479dbc-394f-4ee6-b833-4241dc4543f9}</Project>
       <Name>SocketManagerInfo</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="RRU_EvolutiveSystem.pfx" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
